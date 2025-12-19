@@ -1,71 +1,78 @@
 import streamlit as st
-import pandas as pd
-from pathlib import Path
+from app.layout import setup_page
+from app.styles import card
 
-st.set_page_config(page_title="WITIN", layout="wide")
+setup_page("WITIN")
 
-ROOT = Path(__file__).resolve().parents[1]
-PRICES = ROOT / "warehouse" / "marts" / "dim_prices.parquet"
-AAVE = ROOT / "warehouse" / "marts" / "fact_protocol_snapshot.parquet"
-RISK = ROOT / "warehouse" / "marts" / "fact_risk_scenarios.parquet"
 
-def safe_last_refresh(*dfs) -> str:
-    candidates = []
-    for df in dfs:
-        if df is None or df.empty or "ts_utc" not in df.columns:
-            continue
-        ts = pd.to_datetime(df["ts_utc"], errors="coerce", utc=True)
-        ts = ts.dropna()
-        if not ts.empty:
-            candidates.append(ts.max())
-    if not candidates:
-        return "N/A"
-    return max(candidates).isoformat()
 
-st.title("DeFi & On-chain intelligence for decision-makers")
-st.caption("Aave liquidation risk — built as an end-to-end data product (ETL → storage → refresh → dashboards).")
+st.markdown(
+    """
+    <div class="hero-title">The future of finance, decoded.</div>
+    """,
+    unsafe_allow_html=True,
+)
 
-if PRICES.exists() and AAVE.exists() and RISK.exists():
-    prices = pd.read_parquet(PRICES)
-    aave = pd.read_parquet(AAVE)
-    risk = pd.read_parquet(RISK)
+st.markdown("<div style='height:28px'></div>", unsafe_allow_html=True)
 
-    last_refresh = safe_last_refresh(prices, aave, risk)
-    if last_refresh == "N/A":
-        st.warning("Data loaded but timestamps are missing. Re-run ETL: `python -m pipelines.run_etl`")
-    else:
-        st.success(f"Data ready • Last refresh (UTC): {last_refresh}")
+st.markdown(
+    """
+    <div class="muted" style="max-width:820px;">
+    WITIN is a research-driven analytics company focused on the future of finance, turning on-chain data into actionable insights on DeFi protocols and market dynamics.
+    </div>
+    """,
+    unsafe_allow_html=True,
+)
 
-    c1, c2, c3 = st.columns(3)
-
-    try:
-        tvl = float(aave["tvl_usd"].iloc[0])
-        c1.metric("Aave TVL (USD)", f"{tvl:,.0f}")
-    except Exception:
-        c1.metric("Aave TVL (USD)", "N/A")
-
-    eth_row = prices[prices.get("asset_symbol", pd.Series(dtype=str)) == "ETH"] if not prices.empty else prices
-    if not eth_row.empty and "price_usd" in eth_row.columns:
-        try:
-            c2.metric("ETH price (USDT≈USD)", f"{float(eth_row['price_usd'].iloc[0]):,.2f}")
-        except Exception:
-            c2.metric("ETH price (USDT≈USD)", "N/A")
-    else:
-        c2.metric("ETH price (USDT≈USD)", "N/A")
-
-    c3.metric("Risk scenarios", f"{len(risk)}")
-
-    st.divider()
-    left, right = st.columns(2)
-    with left:
-        st.subheader("Market snapshot (Binance)")
-        st.dataframe(prices, use_container_width=True)
-    with right:
-        st.subheader("Aave snapshot (DefiLlama)")
-        st.dataframe(aave, use_container_width=True)
-
-else:
-    st.warning("Chưa có data marts. Chạy ETL: `python -m pipelines.run_etl`")
+st.write("")
 
 st.divider()
-st.markdown("📩 **Request a briefing:** [Huyen Tran](mailto:huyentr246@gmail.com)")
+
+st.markdown("## Who we serve")
+c1, c2, c3 = st.columns(3)
+with c1:
+    card("Private investors", "Clarity", "Independent, research-grade analysis.")
+with c2:
+    card("Institutions", "Risk signals", "Protocol behavior & systemic exposure.")
+with c3:
+    card("Analysts", "Transparency", "Clean data + reproducible logic.")
+
+st.divider()
+
+st.markdown("## What we deliver")
+left, right = st.columns([1, 1], gap="large")
+with left:
+    st.markdown(
+        """
+        <div class="card">
+          <div class="card-title">Research focus</div>
+          <ul class="muted" style="margin-top:10px;">
+            <li>Liquidation dynamics & risk concentration.</li>
+            <li>Protocol monitoring & behavior.</li>
+            <li>Market-level liquidity & flows.</li>
+          </ul>
+        </div>
+        """,
+        unsafe_allow_html=True,
+    )
+with right:
+    st.markdown(
+        """
+        <div class="card">
+          <div class="card-title">Approach</div>
+          <ul class="muted" style="margin-top:10px;">
+            <li>ETL pipelines + structured storage.</li>
+            <li>Transparent assumptions.</li>
+            <li>Reproducible analytics.</li>
+          </ul>
+        </div>
+        """,
+        unsafe_allow_html=True,
+    )
+
+st.divider()
+
+st.markdown(
+    "<div class='muted' style='margin-top:12px;'>WITIN focuses on research and analytics — not financial advice.</div>",
+    unsafe_allow_html=True,
+)

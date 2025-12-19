@@ -8,9 +8,13 @@ def build_dim_prices(raw_prices: pd.DataFrame) -> pd.DataFrame:
 
 def build_fact_protocol_snapshot(raw_aave: pd.DataFrame) -> pd.DataFrame:
     df = raw_aave.copy()
-    df["tvl_usd"] = pd.to_numeric(df["tvl_usd"], errors="coerce")
-    df = df.dropna(subset=["protocol", "tvl_usd", "ts_utc"])
-    return df[["protocol", "tvl_usd", "category", "ts_utc"]]
+
+    df["tvl_usd"] = pd.to_numeric(df.get("tvl_usd"), errors="coerce").fillna(0.0)
+    df["protocol"] = df.get("protocol", "Aave").fillna("Aave")
+    df["ts_utc"] = df.get("ts_utc")
+
+    keep = [c for c in ["protocol", "tvl_usd", "category", "ts_utc", "source"] if c in df.columns]
+    return df[keep]
 
 def build_fact_risk_placeholder(dim_prices: pd.DataFrame) -> pd.DataFrame:
     ts = dim_prices["ts_utc"].max()

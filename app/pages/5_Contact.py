@@ -12,4 +12,4 @@ with st.form("contact"):
 if submitted:
     st.success("Received. (Phase 2: wire this to email/DB.)")
 
-st.markdown("Or email directly: **mailto:huyentr246@gmail.com**")
+st.markdown("Or email directly: **huyentr246@gmail.com**")

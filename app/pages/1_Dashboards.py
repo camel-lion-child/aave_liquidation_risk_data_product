@@ -1,53 +1,81 @@
 import streamlit as st
 import pandas as pd
 from pathlib import Path
+from app.layout import setup_page
+from app.styles import card
 
-st.set_page_config(page_title="Dashboards — WITIN", layout="wide")
+setup_page("Dashboards — WITIN")
 
 ROOT = Path(__file__).resolve().parents[2]
-PRICES = ROOT / "warehouse" / "marts" / "dim_prices.parquet"
-RISK = ROOT / "warehouse" / "marts" / "fact_risk_scenarios.parquet"
-AAVE = ROOT / "warehouse" / "marts" / "fact_protocol_snapshot.parquet"
+MARTS = ROOT / "warehouse" / "marts"
 
-def safe_last_refresh(*dfs) -> str:
-    candidates = []
-    for df in dfs:
-        if df is None or df.empty or "ts_utc" not in df.columns:
-            continue
-        ts = pd.to_datetime(df["ts_utc"], errors="coerce", utc=True)
-        ts = ts.dropna()
-        if not ts.empty:
-            candidates.append(ts.max())
-    if not candidates:
-        return "N/A"
-    return max(candidates).isoformat()
+TVL_FP = MARTS / "fact_defi_tvl.parquet"
+CATS_FP = MARTS / "dim_categories.parquet"
+PROT_FP = MARTS / "dim_protocols_top.parquet"
 
-st.title("Aave Liquidation Risk Dashboard")
-st.caption("MVP dashboard.")
+def _read(fp: Path) -> pd.DataFrame:
+    return pd.read_parquet(fp) if fp.exists() else pd.DataFrame()
 
-if not (PRICES.exists() and RISK.exists() and AAVE.exists()):
-    st.warning("ETL: `python -m pipelines.run_etl`")
+def _pct_change(series: pd.Series, periods: int) -> float:
+    if series is None or len(series) < periods + 1:
+        return 0.0
+    latest = float(series.iloc[-1])
+    prev = float(series.iloc[-(periods + 1)])
+    if prev == 0:
+        return 0.0
+    return (latest / prev - 1.0) * 100.0
+
+st.title("Dashboards")
+st.caption("Macro-first dashboards (DefiLlama-style): TVL, categories, and protocol landscape.")
+
+tvl = _read(TVL_FP)
+cats = _read(CATS_FP)
+prot = _read(PROT_FP)
+
+if tvl.empty:
+    st.warning("Missing marts. Run ETL first: `python -m pipelines.run_etl`")
     st.stop()
 
-prices = pd.read_parquet(PRICES)
-risk = pd.read_parquet(RISK)
-aave = pd.read_parquet(AAVE)
+tvl["ts_utc"] = pd.to_datetime(tvl["ts_utc"], utc=True, errors="coerce")
+tvl = tvl.dropna(subset=["ts_utc"]).sort_values("ts_utc")
 
-last_refresh = safe_last_refresh(prices, risk, aave)
-st.info(f"Last refresh (UTC): {last_refresh}")
+latest_tvl = float(tvl["tvl_usd"].iloc[-1])
+tvl_7d = _pct_change(tvl["tvl_usd"], 7)
 
-c1, c2 = st.columns(2)
-with c1:
-    st.subheader("Prices (USDT≈USD)")
-    if prices.empty or "asset_symbol" not in prices.columns or "price_usd" not in prices.columns:
-        st.warning("No price data. Re-run ETL.")
-    else:
-        st.bar_chart(prices.set_index("asset_symbol")["price_usd"])
-
-with c2:
-    st.subheader("Stress scenarios (placeholder)")
-    st.dataframe(risk, use_container_width=True)
+k1, k2, k3 = st.columns(3)
+with k1:
+    card("Total DeFi TVL", f"{latest_tvl:,.0f} USD", "Market-wide capital deployed in DeFi")
+with k2:
+    card("TVL change (7D)", f"{tvl_7d:,.2f}%", "Short-term expansion / contraction")
+with k3:
+    card("Data sources", "DefiLlama", "Free public endpoints")
 
 st.divider()
-st.subheader("Aave protocol snapshot")
-st.dataframe(aave, use_container_width=True)
+
+st.markdown("## DeFi TVL trend")
+st.line_chart(tvl.set_index("ts_utc")["tvl_usd"])
+
+st.divider()
+
+st.markdown("## TVL by category")
+if cats.empty:
+    st.info("Category snapshot not available yet.")
+else:
+    cats["tvl_usd"] = pd.to_numeric(cats["tvl_usd"], errors="coerce").fillna(0.0)
+    cats = cats.sort_values("tvl_usd", ascending=False).head(12)
+    st.bar_chart(cats.set_index("category")["tvl_usd"])
+    st.dataframe(cats, use_container_width=True, hide_index=True)
+
+st.divider()
+
+st.markdown("## Protocol landscape (Top 20)")
+if prot.empty:
+    st.info("Protocol snapshot not available yet.")
+else:
+    prot["tvl_usd"] = pd.to_numeric(prot["tvl_usd"], errors="coerce").fillna(0.0)
+    prot = prot.sort_values("tvl_usd", ascending=False)
+    st.dataframe(
+        prot[["name","category","chain","tvl_usd","change_1d_pct","change_7d_pct","change_1m_pct"]],
+        use_container_width=True,
+        hide_index=True,
+    )

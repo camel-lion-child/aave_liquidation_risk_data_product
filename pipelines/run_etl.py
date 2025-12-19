@@ -1,41 +1,83 @@
 from pathlib import Path
-from pipelines.ingest.binance_prices import fetch_prices_usdt
-from pipelines.ingest.defillama_aave import fetch_aave_protocol_snapshot
-from pipelines.transform.marts import (
-    build_dim_prices,
-    build_fact_protocol_snapshot,
-    build_fact_risk_placeholder,
+from datetime import datetime, timezone
+import pandas as pd
+
+from pipelines.ingest.defillama_market import (
+    fetch_total_defi_tvl_chart,
+    fetch_protocols_snapshot,
+    fetch_categories_snapshot,  
 )
-from pipelines.utils.io import write_parquet, replace_table
 
 ROOT = Path(__file__).resolve().parents[1]
 WAREHOUSE = ROOT / "warehouse"
-DB_PATH = WAREHOUSE / "witin.duckdb"
+MARTS = WAREHOUSE / "marts"
+
+
+def now_utc_iso() -> str:
+    return datetime.now(timezone.utc).isoformat()
+
+
+def ensure_dirs():
+    MARTS.mkdir(parents=True, exist_ok=True)
+
+
+def write_parquet(df: pd.DataFrame, out_path: Path):
+    out_path.parent.mkdir(parents=True, exist_ok=True)
+    df.to_parquet(out_path, index=False)
+
 
 def main():
-    # INGEST
-    raw_prices = fetch_prices_usdt()
-    raw_aave = fetch_aave_protocol_snapshot()
+    ensure_dirs()
+    refresh_ts = now_utc_iso()
 
-    write_parquet(raw_prices, WAREHOUSE / "raw" / "binance_prices.parquet")
-    write_parquet(raw_aave, WAREHOUSE / "raw" / "aave_protocol_snapshot.parquet")
+    tvl = fetch_total_defi_tvl_chart()
+    if tvl is None or tvl.empty:
+        tvl = pd.DataFrame(columns=["ts_utc", "tvl_usd", "source"])
 
-    # TRANSFORM
-    dim_prices = build_dim_prices(raw_prices)
-    fact_protocol = build_fact_protocol_snapshot(raw_aave)
-    fact_risk = build_fact_risk_placeholder(dim_prices)
+    prot = fetch_protocols_snapshot(top_n=20)
+    if prot is None or prot.empty:
+        prot = pd.DataFrame(columns=[
+            "name", "slug", "category", "chain",
+            "tvl_usd", "change_1d_pct", "change_7d_pct", "change_1m_pct",
+            "ts_utc", "source"
+        ])
 
-    write_parquet(dim_prices, WAREHOUSE / "marts" / "dim_prices.parquet")
-    write_parquet(fact_protocol, WAREHOUSE / "marts" / "fact_protocol_snapshot.parquet")
-    write_parquet(fact_risk, WAREHOUSE / "marts" / "fact_risk_scenarios.parquet")
+    cats_api = fetch_categories_snapshot()
+    if cats_api is None:
+        cats_api = pd.DataFrame(columns=["category", "tvl_usd", "ts_utc", "source"])
 
-    # LOAD (DuckDB)
-    replace_table(dim_prices, DB_PATH, "dim_prices")
-    replace_table(fact_protocol, DB_PATH, "fact_protocol_snapshot")
-    replace_table(fact_risk, DB_PATH, "fact_risk_scenarios")
+    if not prot.empty and "category" in prot.columns and "tvl_usd" in prot.columns:
+        cats = prot.copy()
+        cats["category"] = cats["category"].fillna("Unknown")
+        cats["tvl_usd"] = pd.to_numeric(cats["tvl_usd"], errors="coerce").fillna(0.0)
+        cats = (
+            cats.groupby("category", as_index=False)["tvl_usd"]
+            .sum()
+            .sort_values("tvl_usd", ascending=False)
+        )
+        cats["ts_utc"] = refresh_ts
+        cats["source"] = "defillama_protocols_agg"
+    else:
+        cats = cats_api  
 
-    print("ETL OK")
-    print(f"DuckDB: {DB_PATH}")
+    meta = pd.DataFrame([{
+        "ts_utc": refresh_ts,
+        "pipeline": "defillama_macro",
+        "status": "ok",
+        "notes": "Total TVL + top protocols + categories (protocols-agg fallback)",
+    }])
+
+    write_parquet(tvl, MARTS / "fact_defi_tvl.parquet")
+    write_parquet(prot, MARTS / "dim_protocols_top.parquet")
+    write_parquet(cats, MARTS / "dim_categories.parquet")
+    write_parquet(meta, MARTS / "meta_refresh.parquet")
+
+    print("✅ ETL done")
+    print(f"- {MARTS / 'fact_defi_tvl.parquet'}")
+    print(f"- {MARTS / 'dim_protocols_top.parquet'}")
+    print(f"- {MARTS / 'dim_categories.parquet'}")
+    print(f"- {MARTS / 'meta_refresh.parquet'}")
+
 
 if __name__ == "__main__":
     main()
