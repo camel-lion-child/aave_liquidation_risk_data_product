@@ -1,19 +1,26 @@
 import streamlit as st
+from app.layout import setup_page
 
-st.set_page_config(page_title="Services — WITIN", layout="wide")
+setup_page("Dashboards — WITIN")
+
 st.title("Services")
 st.caption("Clean deliverables. Minimal noise.")
 
 st.markdown("""
-### On-chain Risk (Aave focus)
-- Health factor distribution & at-risk buckets  
-- Liquidation exposure by collateral/borrow asset  
-- Stress scenarios (ETH -10/-20/-30)  
+### What We Do
+- On-Chain Research & Analysis: Deep analysis of DeFi protocols, user behavior, and systemic risk using raw on-chain data.
+- Decision Intelligence: Translating complex blockchain data into clear insights for strategic financial decisions.
+- Protocol & Market Monitoring: Ongoing analysis of protocol health, liquidity dynamics, and structural changes.
+- Custom Research: Bespoke research tailored to investors, builders, and capital allocators.
 
-### Protocol Monitoring
-- TVL, utilization, rates, liquidity snapshots  
-- Refresh cadence + data quality checks  
+### Who We Help & How
+- Understand DeFi protocol risk and mechanics.
+- Evaluate on-chain liquidity and user behavior.
+- Monitor market stress and systemic vulnerabilities.
+- Support long-term allocation and strategy decisions.
 
-### Custom Research / Dashboards
-- Briefing + dashboard pack tailored to your thesis  
+### Our Focus
+- DeFi Research.
+- On-Chain Data Analysis.
+- Decision Intelligence.
 """)
