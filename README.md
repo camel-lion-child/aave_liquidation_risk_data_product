@@ -1,131 +1,122 @@
-# Aave Liquidation Risk — DeFi Data Product
+# WITIN — DeFi & Market Intelligence Platform
 
-**DeFi & on-chain intelligence for decision-makers**
+**WITIN** is a research-driven analytics platform focused on decoding the future of finance.
+The project delivers clean, macro-level intelligence on decentralized financial markets by
+transforming raw on-chain and market data into decision-ready insights.
 
-This project is an end-to-end **DeFi data product** focused on **Aave liquidation risk**, built as both:
-- a **company website prototype (WITIN)**, and  
-- a **Data Engineer portfolio project** demonstrating real-world ETL, storage, and data delivery.
-
----
-
-## Project Objective
-
-To design and deploy a clean, automated data pipeline that:
-- ingests **crypto market data** and **protocol-level metrics**,
-- transforms and stores them in analytics-ready formats,
-- serves insights through a **Streamlit web interface** suitable for non-technical decision-makers.
-
-The long-term goal is to extend this product into a **full liquidation risk engine** based on real Aave positions and stress-test scenarios.
+This repository represents a **production-style data product** combining:
+- Automated data pipelines (ETL).
+- Structured storage (analytics-ready marts).
+- A Streamlit-based research interface for distribution.
 
 ---
 
-## Architecture (End-to-End)
+## Purpose
 
-APIs (Binance, DefiLlama)
-↓
-Ingestion (Python)
-↓
-Transform (Pandas)
-↓
-Storage (Parquet + DuckDB)
-↓
-Streamlit Web App
+WITIN is designed for:
+
+- Private investors
+- Institutions
+- Analysts and researchers
+
+who seek **clarity**, **structure**, and **context** in modern financial systems built on
+transparent, decentralized infrastructure.
+
+The platform prioritizes:
+- Market structure over short-term price noise.
+- Capital allocation and protocol dynamics.
+- Research-grade presentation over trading interfaces.
+
+---
+
+## What’s Inside
+
+### 1) Macro DeFi Dashboards (DefiLlama-style)
+- Total DeFi TVL (time-series).
+- TVL trends and short-term changes.
+- Protocol landscape (Top protocols by TVL).
+- Category-level capital allocation (derived from protocol data).
+
+> Focus: *Where is capital deployed, and how is the system evolving?*
+
+---
+
+### 2) Markets Page (Binance-based)
+- Clean price context for major crypto assets.
+- Multi-asset comparison.
+- Adjustable time windows.
+- Research-oriented presentation (not a trading terminal).
+
+Assets include BTC, ETH, SOL, ADA, XRP, LINK, UNI, DOGE, TRX, AAVE, and others.
+
+---
+
+### 3) Research-Oriented Frontend
+Built with **Streamlit** as a lightweight research website:
+- Home: positioning & narrative.
+- Dashboards: macro intelligence.
+- Markets: price context.
+- Services / About / Contact: company-facing pages.
+
+---
+
+## Architecture
+
+pipelines/
+  ingest/
+    defillama_market.py      # DeFi macro data ingestion
+    binance_market.py        # Market prices ingestion
+  run_etl.py                 # Orchestration
+
+warehouse/
+  marts/
+    fact_defi_tvl.parquet
+    dim_protocols_top.parquet
+    dim_categories.parquet
+    meta_refresh.parquet
+
+app/
+  Home.py
+  layout.py
+  styles.py
+  pages/
+    Dashboards.py
+    Markets.py
+    Services.py
+    About.py
+    Contact.py
 
 ---
 
 ## Tech Stack
 
-- **Language**: Python.  
-- **Data ingestion**: REST APIs (Binance, DefiLlama).  
-- **Data processing**: Pandas.  
-- **Storage**: Parquet, DuckDB.  
-- **Web app**: Streamlit.  
-- **Version control**: Git & GitHub.  
-- **Environment**: Virtualenv.  
+- Python 3.9+.
+
+- Pandas.
+
+- Requests.
+
+- Parquet / PyArrow.
+
+- Streamlit.
+
+- DefiLlama API (DeFi macro data).
+
+- Binance API (market prices).
 
 ---
 
-## Repository Structure
+## Roadmap (High-level)
 
-aave_liquidation_risk_data_product/
-│
-├── app/ # Streamlit web app
-│ ├── Home.py
-│ ├── styles.py
-│ └── pages/
-│ ├── 1_Dashboards.py
-│ ├── 2_Insights.py
-│ ├── 3_Services.py
-│ ├── 4_About.py
-│ └── 5_Contact.py
-│
-├── pipelines/ # Data pipelines (ETL)
-│ ├── ingest/
-│ │ ├── binance_prices.py
-│ │ └── defillama_aave.py
-│ ├── transform/
-│ │ └── marts.py
-│ ├── utils/
-│ │ └── io.py
-│ └── run_etl.py
-│
-├── warehouse/ # Local data (ignored by Git)
-│ ├── raw/
-│ └── marts/
-│
-├── requirements.txt
-├── .gitignore
-└── README.md
+- Chain-level capital flow dashboards.
 
----
+- DeFi risk & stress indicators.
 
-## Data Pipeline Overview
+- Protocol deep-dives (lending, DEX, perps).
 
-### 1) Ingestion
-- **Binance API**: spot prices (USDT proxy for USD).
-- **DefiLlama API**: Aave protocol snapshot (TVL).
+- External dashboard references (e.g. Dune).
 
-### 2) Transformation
-- Schema normalization.
-- Type casting & validation.
-- Creation of analytics-ready marts:
-  - `dim_prices`
-  - `fact_protocol_snapshot`
-  - `fact_risk_scenarios` (placeholder)
-
-### 3) Storage
-- Columnar storage using **Parquet**.
-- Analytical database using **DuckDB**.
-
-### 4) Serving
-- Streamlit reads from Parquet/DuckDB.
-- No direct API calls from the frontend.
-
----
-
-## Deployment
-
-The project is designed to be deployed on:
-
-- Streamlit Community Cloud (recommended for portfolio & demo).
-
-- Hugging Face Spaces.
-
-- or containerized for cloud platforms (AWS / Fly.io / Render).
-
----
-
-## Current Features
-
-- Live market snapshot (Binance prices).
-
-- Aave protocol overview (TVL).
-
-- Clean KPI cards & dashboards.
-
-- Modular ETL pipelines.
-
-- Professional, minimalist UI (grey / dark theme).
+- Advanced on-chain position analysis.
 
 
 
