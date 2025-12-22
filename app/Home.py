@@ -1,5 +1,5 @@
 import streamlit as st
-from app.layout import setup_page
+from layout import setup_page
 from app.styles import card
 
 setup_page("WITIN")
