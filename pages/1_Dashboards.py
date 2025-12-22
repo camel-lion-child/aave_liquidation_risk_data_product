@@ -1,8 +1,8 @@
 import streamlit as st
 import pandas as pd
 from pathlib import Path
-from app.layout import setup_page
-from app.styles import card
+from layout import setup_page
+from styles import card
 
 setup_page("Dashboards — WITIN")
 

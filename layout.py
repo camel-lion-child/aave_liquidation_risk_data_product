@@ -1,6 +1,6 @@
 from pathlib import Path
 import streamlit as st
-from app.styles import inject_global_styles
+from styles import inject_global_styles
 
 ROOT = Path(__file__).resolve().parents[1]
 LOGO_PATH = ROOT / "app" / "assets" / "witin.png"
