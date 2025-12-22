@@ -1,6 +1,6 @@
 import streamlit as st
 from layout import setup_page
-from app.styles import card
+from styles import card
 
 setup_page("WITIN")
 
