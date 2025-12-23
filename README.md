@@ -75,8 +75,7 @@ warehouse/
     dim_categories.parquet
     meta_refresh.parquet
 
-app/
-  Home.py
+Home.py
   layout.py
   styles.py
   pages/
