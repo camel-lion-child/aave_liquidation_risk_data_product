@@ -1,10 +1,16 @@
+from pathlib import Path
+import subprocess
+import sys
+
+MARTS = Path("warehouse/marts")
+if not MARTS.exists() or not any(MARTS.glob("*.parquet")):
+    subprocess.check_call([sys.executable, "-m", "pipelines.run_etl"])
+
 import streamlit as st
 from layout import setup_page
 from styles import card
 
 setup_page("WITIN")
-
-
 
 st.markdown(
     """
